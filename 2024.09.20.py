@@ -99,8 +99,67 @@ print(res_symm)
 
 # %%
 # regression of reaction times on changes in trial type
+import pandas as pd
+import sklearn as sk
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 
 
+def extract_basic_features(row):
+    f1 = -1 if str(row["Target"])[:5] == "Green" else 1
+    f2 = -1 if str(row["Target"])[-3:] == "Car" else 1
+    f3 = -1 if row["CueTransparency"] == "Transparent" else 1
+    f4 = -1 if row["GameTask"] == "Colour" else 1
+    f = [f1, f2, f3, f4]
+    return f
+
+
+def extract_gaze_type(row):
+    key = {"TargetOnly": [1, 0, 0, 0],
+           "CueOnly": [0, 1, 0, 0],
+           "TargetCue": [0, 0, 1, 0],
+           "CueTarget": [0, 0, 0, 1]}
+    return key[row["GazePattern"]]
+
+
+def extract_demographic(row, maxage):
+    gender = -1 if row["Sex"] == "male" else 1
+    age = row["Age"] / maxage
+    return [gender, age]
+
+
+def setup_data(data):
+    y = data["RT"].to_list()
+    x = []
+    maxage = data["Age"].max()
+    for i, row in data.iterrows():
+        #x.append(extract_basic_features(row))
+        #x.append(extract_gaze_type(row))
+        x.append(extract_demographic(row, maxage))
+    return x, y
+
+
+def hist_complexity(data, hist=1):
+    return
+
+
+def regress(x, y):
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2)
+    regressor = LinearRegression()
+    regressor.fit(x_train, y_train)
+    y_pred = regressor.predict(x_test)
+    r2 = sk.metrics.r2_score(y_test, y_pred)
+    print("R2: ", r2)
+    print("coefficients: ")
+    print(regressor.coef_)
+    return regressor
+
+
+df = pd.read_csv("gaze_pattern.csv")
+df = df[df["SwitchProportion"] != "Demo"]
+df = df[df["GazePattern"] != "Other"]
+x, y = setup_data(df)
+regress(x, y)
 
 
 # %%
